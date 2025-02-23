@@ -1,0 +1,198 @@
+.calendar-container {
+  padding:100px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+/* Modal container */
+.modal {
+  position: fixed;
+  top: 40%;
+  left: 77%;
+  transform: translate(-50%, -50%);
+  background-color: #d6ab7d;
+  padding: 20px 30px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  width: 300px;
+  max-width: 80%;
+  border:1px solid #c38e70;
+}
+
+/* Modal header */
+.modal h2 {
+  text-align: center;
+  margin-top: 0;
+  font-size: 24px;
+  color: #582f0e;
+  font-family: Goudy Old Style;
+}
+
+/* Input field */
+.modal input[type="number"] {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
+}
+
+.modal input[type ="text"]{
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
+}
+
+/* Buttons */
+.modal button {
+  display: inline-block;
+  padding: 10px 20px;
+  margin: 10px 5px 0;
+  border: 1px solid #582f0e;
+  border-radius: 5px;
+  font-size: 18px;
+  font-family: Goudy Old Style;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+
+}
+
+.modal addgoalsbutton {
+  display: inline-block;
+  padding: 10px 20px;
+  margin: 10px 5px 0;
+  border: 1px solid #582f0e;
+  border-radius: 5px;
+  font-size: 18px;
+  font-family: Goudy Old Style;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+
+.modal button.income {
+  background-color: #4caf50; /* Green */
+  color: #582f0e;
+}
+
+.modal button.expense {
+  background-color: #f44336; /* Red */
+  color: #582f0e;
+}
+
+.modal button.cancel {
+  background-color: #757575; /* Gray */
+  color: #fff;
+}
+
+.modal button:hover {
+  opacity: 0.9;
+}
+
+/* Background overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+}
+
+.add-goal-button {
+  display: inline-block;
+  padding: 10px 20px;
+  margin: 10px 5px 0;
+  border: 1px solid #582f0e;
+  border-radius: 5px;
+  font-size: 18px;
+  font-family: 'Goudy Old Style', serif;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  background-color: #fff;
+  color: #582f0e;
+}
+
+.add-goal-button:hover {
+  opacity: 0.9;
+}
+
+.info-box {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 20px;
+  z-index: 1001;
+  text-align: center;
+}
+
+.info-box p {
+  margin-bottom: 15px;
+}
+
+.info-box button {
+  padding: 5px 15px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.info-box button:hover {
+  background-color: #45a049;
+}
+
+.modal input,
+.modal select {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
+  background-color: white;
+  box-sizing: border-box;
+}
+
+.modal select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 10px top 50%;
+  padding-right: 30px;
+}
+
+.modal button {
+  padding: 10px 20px;
+  margin: 10px 5px 0;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.modal button.income {
+  background-color: #4caf50;
+  color: white;
+}
+
+.modal button.cancel {
+  background-color: #f44336;
+  color: white;
+}

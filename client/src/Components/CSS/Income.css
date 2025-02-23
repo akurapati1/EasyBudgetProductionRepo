@@ -1,0 +1,98 @@
+.income-container {
+    display: flex;
+    justify-content: space-between;
+    padding: 20px;
+    background-color:#ede0d4;
+  }
+  
+  .totals, .forecast-container {
+    width: 45%;
+    color: black;
+  }
+  
+  .totals{
+    background: #d5bdaf;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    color: #ede0d4;
+    font-family: Goudy Old Style;
+  }
+  .total-income,.total-expenses{
+    color: black;
+  }
+  
+  .forecast-container {
+    position: relative;
+  }
+  
+  .forecast-button {
+    display: block;
+    width: 100%;
+    padding: 15px;
+    background-color: #b3c799;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+    font-family: Goudy Old Style;
+    font-size: 20px;
+
+
+  }
+  
+  .forecast-button:hover {
+    background-color: #72b01d;
+  }
+  
+  .forecast-slide {
+    position: absolute;
+    top: 60px;
+    width: 100%;
+    background: #a68a64;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    animation: slideDown 0.3s ease-in-out;
+  }
+  
+  .forecast {
+    padding: 20px;
+  }
+  
+  .forecast h2 {
+    margin-top: 0;
+  }
+  
+  .close-button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 20px;
+    font-family: Goudy Old Style;
+
+  }
+  
+  .close-button:hover {
+    background-color: #c82333;
+  }
+  
+  @keyframes slideDown {
+    from {
+      max-height: 0;
+      opacity: 0;
+    }
+    to {
+      max-height: 400px;
+      opacity: 1;
+    }
+  }
+  
