@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 5001;
 
 // Middleware
 app.use(bodyParser.json());
-app.use(cors({ origin: '*' }));
+app.use(cors({ origin: 'https://easybudgetmakesiteasy.onrender.com', credentials: true }));
 
 
 // Database connection
