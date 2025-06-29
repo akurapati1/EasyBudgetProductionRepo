@@ -6,7 +6,7 @@ const authMiddleware = require('../middleware/authMiddleware');
 const userController=require('../controllers/userController');
 
 router.use(cors({ // Enable CORS for all routes
-    origin: 'https://easybudgetmakesiteasy.onrender.com/',
+    origin: '*',
 }));
 
 router.post('/register', userController.register);
