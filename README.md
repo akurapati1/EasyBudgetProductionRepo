@@ -22,12 +22,18 @@ This project is a full-stack web application designed to help users manage their
 - npm (Node Package Manager)
 - MongoDB (local or MongoDB Atlas)
 
+### Production 
+This application has its original code in a different code base that can be run locally by following the below instructions. This repo is dedicated to write code related to deployment of this application. 
+find the original localy runnable code at: "https://github.com/akurapati1/CSCI5300_Project_EasyBudget". 
+
+ 
+
 ### Installation
 
 #### Clone the Repository
 ```bash
-git clone https://github.com/yourusername/budget-savings-app.git
-cd budget-savings-app
+git clone https://github.com/akurapati1/CSCI5300_Project_EasyBudget
+cd CSCI5300_Project_EasyBudget
 
 Backend Setup
 Navigate to the backend directory:
@@ -104,6 +110,8 @@ frontend/
 │   ├── index.js
 │   └── package.json
 
+Note: The above project might have been compromised
+
 Usage
 
 Register and Login
@@ -143,3 +151,4 @@ For any questions or feedback, please contact [yourname@example.com].
 javascript
 
 Replace placeholders like `yourusername`, `your_mongodb_connection_string`, `your_jwt_secret`, and `yourname@example.com` with your actual values. This `README.md` file provides a comprehensive guide for setting up and using your application.
+
