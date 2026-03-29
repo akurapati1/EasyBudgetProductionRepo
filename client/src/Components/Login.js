@@ -66,6 +66,9 @@ const Login = () => {
                         <C.Button type="submit" disabled={!username || !password || loading}>
                             {loading ? 'Signing in...' : 'Sign In'}
                         </C.Button>
+                        <C.Anchor as={Link} to="/forgot-password">
+                            Forgot your password?
+                        </C.Anchor>
                         <C.Anchor as={Link} to="/register">
                             Don't have an account? Sign up
                         </C.Anchor>

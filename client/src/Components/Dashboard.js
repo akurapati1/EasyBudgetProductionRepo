@@ -27,11 +27,19 @@ const pageTitles = {
 };
 
 const Dashboard = () => {
-  const { user, logout } = useContext(AuthContext);
+  const { user, logout, initializing } = useContext(AuthContext);
   const { dispatch } = useContext(UserContext);
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  if (initializing) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--text-muted)' }}>
+        Loading...
+      </div>
+    );
+  }
 
   if (!user) {
     return (

@@ -1,10 +1,37 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const { sendPasswordResetEmail } = require('../utils/mailer');
+
+// Password strength: min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/;
+
+exports.getMe = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select('-password -resetPasswordToken -resetPasswordExpires');
+        if (!user) return res.status(404).json({ message: 'User not found.' });
+        res.json({
+            id: user._id,
+            username: user.username,
+            income: user.income,
+            expenses: user.expenses,
+            savingsGoals: user.savingsGoals
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching user.' });
+    }
+};
 
 exports.register = async (req, res) => {
     const { username, email, password } = req.body;
     if (!username || !password) return res.status(400).json({ message: 'Username and password are required.' });
+    if (!email) return res.status(400).json({ message: 'Email is required for account recovery.' });
+    if (!PASSWORD_REGEX.test(password)) {
+        return res.status(400).json({
+            message: 'Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character.'
+        });
+    }
     try {
         const existing = await User.findOne({ username });
         if (existing) return res.status(409).json({ message: 'Username already taken.' });
@@ -43,6 +70,56 @@ exports.login = async (req, res) => {
     }
 };
 
+exports.forgotPassword = async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: 'Email is required.' });
+    try {
+        const user = await User.findOne({ email: email.toLowerCase().trim() });
+        // Always respond the same way to prevent email enumeration
+        if (!user) {
+            return res.json({ message: 'If that email is registered, a reset link has been sent.' });
+        }
+        const token = crypto.randomBytes(32).toString('hex');
+        user.resetPasswordToken = token;
+        user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+        await user.save();
+
+        const clientOrigin = process.env.CLIENT_ORIGIN || 'http://localhost:3000';
+        const resetUrl = `${clientOrigin}/reset-password/${token}`;
+        await sendPasswordResetEmail(user.email, resetUrl);
+        res.json({ message: 'If that email is registered, a reset link has been sent.' });
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        res.status(500).json({ message: 'Error sending reset email.' });
+    }
+};
+
+exports.resetPassword = async (req, res) => {
+    const { token } = req.params;
+    const { password } = req.body;
+    if (!password) return res.status(400).json({ message: 'New password is required.' });
+    if (!PASSWORD_REGEX.test(password)) {
+        return res.status(400).json({
+            message: 'Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character.'
+        });
+    }
+    try {
+        const user = await User.findOne({
+            resetPasswordToken: token,
+            resetPasswordExpires: { $gt: Date.now() }
+        });
+        if (!user) return res.status(400).json({ message: 'Reset link is invalid or has expired.' });
+        user.password = await bcrypt.hash(password, 12);
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+        await user.save();
+        res.json({ message: 'Password reset successfully. You can now sign in.' });
+    } catch (error) {
+        console.error('Reset password error:', error);
+        res.status(500).json({ message: 'Error resetting password.' });
+    }
+};
+
 exports.addIncome = async (req, res) => {
     const { date, amount, description, frequency } = req.body;
     if (!date || !amount || !description || !frequency) {
@@ -53,10 +130,8 @@ exports.addIncome = async (req, res) => {
         if (!user) return res.status(404).json({ message: 'User not found.' });
         user.income.push({ date, amount, description, frequency });
         await user.save();
-        const added = user.income[user.income.length - 1];
-        res.status(201).json(added);
+        res.status(201).json(user.income[user.income.length - 1]);
     } catch (error) {
-        console.error('Error adding income:', error);
         res.status(500).json({ message: 'Error adding income.' });
     }
 };
@@ -71,10 +146,8 @@ exports.addExpense = async (req, res) => {
         if (!user) return res.status(404).json({ message: 'User not found.' });
         user.expenses.push({ date, amount, description, frequency });
         await user.save();
-        const added = user.expenses[user.expenses.length - 1];
-        res.status(201).json(added);
+        res.status(201).json(user.expenses[user.expenses.length - 1]);
     } catch (error) {
-        console.error('Error adding expense:', error);
         res.status(500).json({ message: 'Error adding expense.' });
     }
 };
@@ -89,10 +162,8 @@ exports.addSavingsGoal = async (req, res) => {
         if (!user) return res.status(404).json({ message: 'User not found.' });
         user.savingsGoals.push({ goalName, goalAmount, allocatedPercentage });
         await user.save();
-        const added = user.savingsGoals[user.savingsGoals.length - 1];
-        res.status(201).json(added);
+        res.status(201).json(user.savingsGoals[user.savingsGoals.length - 1]);
     } catch (error) {
-        console.error('Error adding savings goal:', error);
         res.status(500).json({ message: 'Error adding savings goal.' });
     }
 };

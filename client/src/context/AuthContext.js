@@ -5,6 +5,7 @@ const AuthContext = createContext();
 
 const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
+    const [initializing, setInitializing] = useState(true);
 
     useEffect(() => {
         try {
@@ -15,14 +16,16 @@ const AuthProvider = ({ children }) => {
                 if (decoded.exp && decoded.exp * 1000 < Date.now()) {
                     localStorage.removeItem('token');
                     localStorage.removeItem('user');
-                    return;
+                } else {
+                    const parsed = JSON.parse(userData);
+                    setUser({ ...parsed, id: decoded.id });
                 }
-                const parsed = JSON.parse(userData);
-                setUser({ ...parsed, id: decoded.id });
             }
         } catch {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
+        } finally {
+            setInitializing(false);
         }
     }, []);
 
@@ -30,6 +33,7 @@ const AuthProvider = ({ children }) => {
         const decoded = jwtDecode(userData.token);
         const userWithId = { ...userData, id: decoded.id };
         localStorage.setItem('user', JSON.stringify(userData));
+        localStorage.setItem('token', userData.token);
         setUser(userWithId);
     };
 
@@ -41,7 +45,7 @@ const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout }}>
+        <AuthContext.Provider value={{ user, login, logout, initializing }}>
             {children}
         </AuthContext.Provider>
     );

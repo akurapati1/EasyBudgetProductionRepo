@@ -24,6 +24,7 @@ const reducer = (state, action) => {
                 income: action.payload.user.income || [],
                 expenses: action.payload.user.expenses || [],
                 savingsGoals: action.payload.user.savingsGoals || [],
+                loading: false,
                 error: null
             };
         case 'LOGOUT':
@@ -41,8 +42,8 @@ const reducer = (state, action) => {
             return { ...state, expenses: state.expenses.filter(e => e._id !== action.payload) };
         case 'DELETE_GOAL':
             return { ...state, savingsGoals: state.savingsGoals.filter(g => g._id !== action.payload) };
-        case 'SET_ERROR':
-            return { ...state, error: action.payload };
+        case 'SET_LOADING':
+            return { ...state, loading: action.payload };
         default:
             return state;
     }
@@ -53,6 +54,7 @@ export const UserContext = createContext();
 export const UserProvider = ({ children }) => {
     const [state, dispatch] = useReducer(reducer, initialState);
 
+    // Keep axios auth header in sync with token
     useEffect(() => {
         if (state.token) {
             axios.defaults.headers.common['Authorization'] = `Bearer ${state.token}`;
@@ -60,6 +62,30 @@ export const UserProvider = ({ children }) => {
             delete axios.defaults.headers.common['Authorization'];
         }
     }, [state.token]);
+
+    // Rehydrate user data from server on mount/refresh if token exists
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (!token || state.user) return;
+
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        dispatch({ type: 'SET_LOADING', payload: true });
+
+        axios.get(`${API}/auth/me`)
+            .then(res => {
+                dispatch({
+                    type: 'SET_USER',
+                    payload: { user: res.data, token }
+                });
+            })
+            .catch(() => {
+                // Token invalid or expired — clear it
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                dispatch({ type: 'LOGOUT' });
+            });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const addIncome = async (incomeData) => {
         const res = await axios.post(`${API}/api/budget/income`, incomeData);
