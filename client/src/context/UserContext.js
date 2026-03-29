@@ -1,40 +1,48 @@
 import React, { createContext, useReducer, useEffect } from 'react';
 import axios from 'axios';
 
+const API = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+
 const initialState = {
     user: null,
     token: localStorage.getItem('token') || null,
     income: [],
     expenses: [],
-    savingsGoals: []
+    savingsGoals: [],
+    loading: false,
+    error: null
 };
 
 const reducer = (state, action) => {
-    console.log("here in the user context reducer. the action is : ",action)
     switch (action.type) {
         case 'SET_USER':
             localStorage.setItem('token', action.payload.token);
-            console.log("in user context,  setting the user: ",action.payload.user);
             return {
                 ...state,
                 user: action.payload.user,
                 token: action.payload.token,
                 income: action.payload.user.income || [],
                 expenses: action.payload.user.expenses || [],
-                savingsGoals:action.payload.user.savingsGoals || []
+                savingsGoals: action.payload.user.savingsGoals || [],
+                error: null
             };
-               
         case 'LOGOUT':
             localStorage.removeItem('token');
-
-            // return { ...state, user: null, token: null, income: [], expenses: [], savingsGoals: [] };
-            return initialState;
+            return { ...initialState, token: null };
         case 'ADD_INCOME':
             return { ...state, income: [...state.income, action.payload] };
         case 'ADD_EXPENSE':
             return { ...state, expenses: [...state.expenses, action.payload] };
         case 'ADD_GOAL':
             return { ...state, savingsGoals: [...state.savingsGoals, action.payload] };
+        case 'DELETE_INCOME':
+            return { ...state, income: state.income.filter(i => i._id !== action.payload) };
+        case 'DELETE_EXPENSE':
+            return { ...state, expenses: state.expenses.filter(e => e._id !== action.payload) };
+        case 'DELETE_GOAL':
+            return { ...state, savingsGoals: state.savingsGoals.filter(g => g._id !== action.payload) };
+        case 'SET_ERROR':
+            return { ...state, error: action.payload };
         default:
             return state;
     }
@@ -43,53 +51,48 @@ const reducer = (state, action) => {
 export const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {
-
     const [state, dispatch] = useReducer(reducer, initialState);
-    useEffect(() => {
-        if (state.token) {
-            console.log("State after setting token: ", state);
-            // Fetch user data and dispatch actions to update state
-            axios.defaults.headers.common['Authorization'] = `Bearer ${state.token}`;
-        }
-    }, [state.token]);
-    useEffect(() => {
-        if (state.token) {
-            console.log("State after setting token: ", state);
-            // Fetch user data and dispatch actions to update state
-            axios.defaults.headers.common['Authorization'] = `Bearer ${state.token}`;
-        }
-    }, [state.token]);
-    const addIncome = async (incomeData) => {
-        try {
-            await axios.post('http://localhost:5001/api/income', incomeData);
-            dispatch({ type: 'ADD_INCOME', payload: incomeData });
-            console.log("dispatched succesfully the amount: ",incomeData);
 
-        } catch (error) {
-            console.error('Error adding income:', error);
+    useEffect(() => {
+        if (state.token) {
+            axios.defaults.headers.common['Authorization'] = `Bearer ${state.token}`;
+        } else {
+            delete axios.defaults.headers.common['Authorization'];
         }
+    }, [state.token]);
+
+    const addIncome = async (incomeData) => {
+        const res = await axios.post(`${API}/api/budget/income`, incomeData);
+        dispatch({ type: 'ADD_INCOME', payload: res.data });
     };
 
     const addExpense = async (expenseData) => {
-        try {
-            await axios.post('http://localhost:5001/api/expense', expenseData);
-            dispatch({ type: 'ADD_EXPENSE', payload: expenseData });
-        } catch (error) {
-            console.error('Error adding expense:', error);
-        }
+        const res = await axios.post(`${API}/api/budget/expense`, expenseData);
+        dispatch({ type: 'ADD_EXPENSE', payload: res.data });
     };
 
-    const addSavingGoal = async (savingGoal) => {
-        try {
-            await axios.post('http://localhost:5001/api/saving', savingGoal);
-            dispatch({ type: 'ADD_GOAl', payload: savingGoal });
-        } catch (error) {
-            console.error('Error adding a saving goal:', error);
-        }
+    const addSavingGoal = async (goalData) => {
+        const res = await axios.post(`${API}/api/budget/saving`, goalData);
+        dispatch({ type: 'ADD_GOAL', payload: res.data });
+    };
+
+    const deleteIncome = async (id) => {
+        await axios.delete(`${API}/api/budget/income/${id}`);
+        dispatch({ type: 'DELETE_INCOME', payload: id });
+    };
+
+    const deleteExpense = async (id) => {
+        await axios.delete(`${API}/api/budget/expense/${id}`);
+        dispatch({ type: 'DELETE_EXPENSE', payload: id });
+    };
+
+    const deleteSavingGoal = async (id) => {
+        await axios.delete(`${API}/api/budget/saving/${id}`);
+        dispatch({ type: 'DELETE_GOAL', payload: id });
     };
 
     return (
-        <UserContext.Provider value={{ state, dispatch, addIncome, addExpense, addSavingGoal }}>
+        <UserContext.Provider value={{ state, dispatch, addIncome, addExpense, addSavingGoal, deleteIncome, deleteExpense, deleteSavingGoal }}>
             {children}
         </UserContext.Provider>
     );

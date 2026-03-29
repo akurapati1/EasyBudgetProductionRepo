@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Backend Syntax Check",
+  "description": "Checks backend JS files for syntax errors on save using node --check",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "Backend/**/*.js"
+    ]
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "node --check Backend/server.js && echo \"Backend syntax OK\""
+  }
+}

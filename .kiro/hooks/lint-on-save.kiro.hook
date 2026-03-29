@@ -1,0 +1,17 @@
+{
+  "enabled": true,
+  "name": "Lint on Save",
+  "description": "Runs ESLint on frontend JS/JSX files whenever they are saved",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "client/src/**/*.js",
+      "client/src/**/*.jsx"
+    ]
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "cd client && npx eslint src --ext .js,.jsx --max-warnings 0 2>&1 | tail -20"
+  }
+}

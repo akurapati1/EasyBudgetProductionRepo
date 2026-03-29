@@ -2,102 +2,133 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-// Register a new user
 exports.register = async (req, res) => {
-    const { username, password } = req.body;
+    const { username, email, password } = req.body;
+    if (!username || !password) return res.status(400).json({ message: 'Username and password are required.' });
     try {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new User({ username, password: hashedPassword });
+        const existing = await User.findOne({ username });
+        if (existing) return res.status(409).json({ message: 'Username already taken.' });
+        const hashedPassword = await bcrypt.hash(password, 12);
+        const newUser = new User({ username, email, password: hashedPassword });
         await newUser.save();
-        console.log("In the UserController JS, User registered: ",newUser);
-        res.status(201).json({ message: 'User registered', user: newUser });
-
+        res.status(201).json({ message: 'User registered successfully.' });
     } catch (error) {
         console.error('Error registering user:', error);
-        res.status(500).send('Error registering user');
+        res.status(500).json({ message: 'Error registering user.' });
     }
 };
-// Login a user
+
 exports.login = async (req, res) => {
     const { username, password } = req.body;
-    console.log("the backend logged function was hit, in user is : ", req.body);
+    if (!username || !password) return res.status(400).json({ message: 'Username and password are required.' });
     try {
         const user = await User.findOne({ username });
-        console.log("The user in login function is : ",user);
-        if (user && await bcrypt.compare(password, user.password)) {
-            const token = jwt.sign({ id: user._id }, 'your_jwt_secret');
-            res.json({ 
-                token,
-                user: {
-                    id: user._id,
-                    username: user.username,
-                    income: user.income,
-                    expenses: user.expenses,
-                    savingsGoals: user.savingsGoals
-                }
-            });
-            console.log("The user details after login is : ", user);
-        } else {
-            res.status(401).send('Invalid credentials');
+        if (!user || !(await bcrypt.compare(password, user.password))) {
+            return res.status(401).json({ message: 'Invalid credentials.' });
         }
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+        res.json({
+            token,
+            user: {
+                id: user._id,
+                username: user.username,
+                income: user.income,
+                expenses: user.expenses,
+                savingsGoals: user.savingsGoals
+            }
+        });
     } catch (error) {
-        console.error('Error logging in user:', error);
-        res.status(500).send('Error logging in user');
+        console.error('Error logging in:', error);
+        res.status(500).json({ message: 'Error logging in.' });
     }
-
 };
 
-
-// Add income to user
 exports.addIncome = async (req, res) => {
-    const { date, amount,description, frequency} = req.body;
-    console.log("In UserController JS Received income data:", req.body);
+    const { date, amount, description, frequency } = req.body;
+    if (!date || !amount || !description || !frequency) {
+        return res.status(400).json({ message: 'All fields are required.' });
+    }
     try {
         const user = await User.findById(req.user.id);
-        console.log("in Controller class, adding Income, the user is : ",user);
-        if (!user.income) {
-            user.income = []; // Initialize income array if it doesn't exist
-        }
-        user.income.push({date, amount, description, frequency});
+        if (!user) return res.status(404).json({ message: 'User not found.' });
+        user.income.push({ date, amount, description, frequency });
         await user.save();
-        res.status(200).send('Income added');
+        const added = user.income[user.income.length - 1];
+        res.status(201).json(added);
     } catch (error) {
         console.error('Error adding income:', error);
-        res.status(500).send('Error adding income');
+        res.status(500).json({ message: 'Error adding income.' });
     }
 };
 
-// Add expense to user
 exports.addExpense = async (req, res) => {
-    const {date, amount,description, frequency} = req.body;
-    console.log("In UserController JS Received expense data:", req.body);
+    const { date, amount, description, frequency } = req.body;
+    if (!date || !amount || !description || !frequency) {
+        return res.status(400).json({ message: 'All fields are required.' });
+    }
     try {
         const user = await User.findById(req.user.id);
-        if (!user.expenses) {
-            user.expenses = []; // Initialize expenses array if it doesn't exist
-        }
-        user.expenses.push({date, amount, description, frequency });
+        if (!user) return res.status(404).json({ message: 'User not found.' });
+        user.expenses.push({ date, amount, description, frequency });
         await user.save();
-        res.status(200).send('Expense added');
+        const added = user.expenses[user.expenses.length - 1];
+        res.status(201).json(added);
     } catch (error) {
         console.error('Error adding expense:', error);
-        res.status(500).send('Error adding expense');
+        res.status(500).json({ message: 'Error adding expense.' });
     }
 };
 
 exports.addSavingsGoal = async (req, res) => {
-    const {goalName, goalAmount, allocatedPercentage} = req.body;
-    console.log("In UserController JS Received saving goal data:", req.body);
+    const { goalName, goalAmount, allocatedPercentage } = req.body;
+    if (!goalName || !goalAmount || !allocatedPercentage) {
+        return res.status(400).json({ message: 'All fields are required.' });
+    }
     try {
         const user = await User.findById(req.user.id);
-        if (!user.savingsGoals) {
-            user.savingsGoals = []; // Initialize expenses array if it doesn't exist
-        }
-        user.savingsGoals.push({goalName, goalAmount, allocatedPercentage});
+        if (!user) return res.status(404).json({ message: 'User not found.' });
+        user.savingsGoals.push({ goalName, goalAmount, allocatedPercentage });
         await user.save();
-        res.status(200).send('Expense added');
+        const added = user.savingsGoals[user.savingsGoals.length - 1];
+        res.status(201).json(added);
     } catch (error) {
-        console.error('Error adding expense:', error);
-        res.status(500).send('Error adding expense');
+        console.error('Error adding savings goal:', error);
+        res.status(500).json({ message: 'Error adding savings goal.' });
+    }
+};
+
+exports.deleteIncome = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ message: 'User not found.' });
+        user.income = user.income.filter(item => item._id.toString() !== req.params.id);
+        await user.save();
+        res.json({ message: 'Income deleted.' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error deleting income.' });
+    }
+};
+
+exports.deleteExpense = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ message: 'User not found.' });
+        user.expenses = user.expenses.filter(item => item._id.toString() !== req.params.id);
+        await user.save();
+        res.json({ message: 'Expense deleted.' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error deleting expense.' });
+    }
+};
+
+exports.deleteSavingsGoal = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ message: 'User not found.' });
+        user.savingsGoals = user.savingsGoals.filter(item => item._id.toString() !== req.params.id);
+        await user.save();
+        res.json({ message: 'Savings goal deleted.' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error deleting savings goal.' });
     }
 };
