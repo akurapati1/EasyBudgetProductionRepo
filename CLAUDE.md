@@ -25,15 +25,15 @@ npm start        # node server.js
 
 ### Running a single test
 ```bash
-cd client
-npx jest src/__tests__/Dashboard.test.js
+cd client && CI=true npx react-scripts test --watchAll=false src/__tests__/Login.test.js
+cd Backend && npx jest tests/api.test.js -t "reset"
 ```
 
 ## Architecture
 
 **Frontend** (`client/`): React 18, Create React App, React Router v6, Context API for auth/user state, Axios for HTTP, Chart.js for visualizations, styled-components.
 
-**Backend** (`Backend/`): Express on port 5001, MongoDB Atlas via Mongoose, JWT authentication, bcryptjs password hashing. MVC pattern: `routes/` → `controllers/` → `models/`.
+**Backend** (`Backend/`): Express on port 5001, MongoDB via Mongoose 8, JWT authentication, bcryptjs password hashing, helmet + rate limiting. MVC pattern: `routes/` → `controllers/` → `models/`.
 
 ### Key data flow
 - Auth state lives in `client/src/context/AuthContext.js` (JWT token)
@@ -45,24 +45,25 @@ npx jest src/__tests__/Dashboard.test.js
 |---|---|
 | `/` | Login |
 | `/register` | Register |
-| `/dashboard/*` | Dashboard (nested routes for Budget, Income, SavingsGoal, Chart) |
+| `/forgot-password` | ForgotPassword |
+| `/reset-password/:token` | ResetPassword |
+| `/dashboard/*` | Dashboard (nested: home, income, budget, savingsgoal, chart) |
 
-**Mounted backend routes** (`Backend/server.js` mounts `/auth` → `routes/auth.js` and `/api` → `routes/budgetRoutes.js`):
+**Backend routes** (`Backend/app.js` mounts `/auth` → `routes/auth.js` and `/api/budget` → `routes/budgetRoutes.js`; `Backend/server.js` only connects MongoDB and listens):
 
 | Backend Route | Auth | Purpose |
 |---|---|---|
-| `POST /auth/register` | None | Create user |
-| `POST /auth/login` | None | Login, returns JWT + full user data |
-| `POST /auth/income` | JWT | Add income via `userController` |
-| `POST /auth/expense` | JWT | Add expense via `userController` |
-| `POST /api/budget/income` | None | Add income using `userId` in body |
-| `POST /api/budget/expense` | None | Add expense using `userId` in body |
-| `POST /api/budget/saving` | None | Add savings goal using `userId` in body |
+| `POST /auth/register`, `POST /auth/login` | None | Create user / login (JWT + user data) |
+| `GET /auth/me` | JWT | Current user |
+| `POST /auth/forgot-password`, `POST /auth/reset-password/:token` | None | Password reset (token stored as SHA-256 hash) |
+| `POST /api/budget/income\|expense\|saving` | JWT | Add entry (validated in `utils/validators.js`) |
+| `DELETE /api/budget/income\|expense\|saving/:id` | JWT | Remove entry |
+| `GET /health` | None | Liveness |
 
-> **Note:** `Backend/routes/incomeRoutes.js` and `expensesRoutes.js` exist but are **not mounted** in `server.js`. `UserContext.js` currently calls `/api/income`, `/api/expense`, `/api/saving` which are also not mounted — those calls will 404 in the current server config.
+All budget routes derive the user from the JWT (`req.user.id`); never accept a `userId` from the body.
 
 ### Auth middleware
-`Backend/middleware/authMiddleware.js` — reads `Authorization` header, verifies JWT, attaches decoded user to `req.user`.
+`Backend/middleware/authMiddleware.js` — reads `Authorization` header (with or without `Bearer `), verifies the JWT, attaches the decoded payload to `req.user`; responds 401 on missing/invalid tokens.
 
 ### User model schema
 All user data is embedded in a single `User` document (`Backend/models/User.js`):
@@ -71,22 +72,17 @@ All user data is embedded in a single `User` document (`Backend/models/User.js`)
 - `savingsGoals[]`: `{ goalName, goalAmount, allocatedPercentage }`
 
 ### API base URL
-`UserContext.js` hardcodes `http://localhost:5001` for all API calls. This must be changed for production deployments.
+Components read `process.env.REACT_APP_API_URL` (default `http://localhost:5001`); it is baked in at build time.
 
 ## Environment
 
-Backend requires `Backend/.env`:
-```
-MONGODB_URI=<MongoDB Atlas connection string>
-JWT_SECRET=<secret key>
-```
+Backend requires `Backend/.env` (see `Backend/.env.example`): `MONGODB_URI` and `JWT_SECRET` are mandatory (server exits without them); optional `CLIENT_ORIGIN`, `EMAIL_*`, `AUTH_RATE_LIMIT`.
 
 ## CI/CD
 
-GitHub Actions (`.github/workflows/main.yaml`) runs on push/PR to `main`:
-1. Client job: installs deps, runs tests, builds with `CI=false`
-2. Backend job: installs deps, runs tests
+GitHub Actions (`.github/workflows/main.yaml`) runs on push/PR to `main`: backend tests, client tests + build, then Docker image builds. `docker-compose.yml` runs MongoDB + API + nginx-served client.
 
 ## Testing
 
-Tests are in `client/src/__tests__/`. Jest config is in `client/jest.config.js`. Axios is mocked via `client/src/__mocks__/axios.js`. CSS/style imports use `client/src/__mocks__/styleMock.js`.
+- Backend: `cd Backend && npm test` — Jest + supertest in `Backend/tests/`; the Mongoose `User` model is replaced by an in-memory fake (`tests/helpers/fakeUserModel.js`), so no database is required. Extend the fake if a controller starts using new query operators.
+- Client: `cd client && CI=true npm test -- --watchAll=false` — tests in `client/src/__tests__/`; axios is mocked via `client/src/__mocks__/axios.js`.

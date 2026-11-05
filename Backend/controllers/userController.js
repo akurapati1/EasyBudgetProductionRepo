@@ -2,6 +2,10 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { validateTransaction, validateSavingsGoal } = require('../utils/validators');
+
+// Only a SHA-256 digest of the reset token is stored, so a database leak cannot be used to take over accounts.
+const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 const { sendPasswordResetEmail } = require('../utils/mailer');
 
 // Password strength: min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
@@ -24,8 +28,10 @@ exports.getMe = async (req, res) => {
 };
 
 exports.register = async (req, res) => {
-    const { username, email, password } = req.body;
-    if (!username || !password) return res.status(400).json({ message: 'Username and password are required.' });
+    const { password } = req.body;
+    const username = typeof req.body.username === 'string' ? req.body.username.trim() : req.body.username;
+    const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : req.body.email;
+    if (typeof username !== 'string' || typeof password !== 'string' || !username.trim() || !password) return res.status(400).json({ message: 'Username and password are required.' });
     if (!email) return res.status(400).json({ message: 'Email is required for account recovery.' });
     if (!PASSWORD_REGEX.test(password)) {
         return res.status(400).json({
@@ -47,7 +53,10 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
     const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ message: 'Username and password are required.' });
+    // Reject non-strings so objects like {"$ne": null} can never reach the query (NoSQL injection).
+    if (typeof username !== 'string' || typeof password !== 'string' || !username || !password) {
+        return res.status(400).json({ message: 'Username and password are required.' });
+    }
     try {
         const user = await User.findOne({ username });
         if (!user || !(await bcrypt.compare(password, user.password))) {
@@ -72,7 +81,7 @@ exports.login = async (req, res) => {
 
 exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
-    if (!email) return res.status(400).json({ message: 'Email is required.' });
+    if (typeof email !== 'string' || !email) return res.status(400).json({ message: 'Email is required.' });
     try {
         const user = await User.findOne({ email: email.toLowerCase().trim() });
         // Always respond the same way to prevent email enumeration
@@ -80,7 +89,7 @@ exports.forgotPassword = async (req, res) => {
             return res.json({ message: 'If that email is registered, a reset link has been sent.' });
         }
         const token = crypto.randomBytes(32).toString('hex');
-        user.resetPasswordToken = token;
+        user.resetPasswordToken = hashToken(token);
         user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
         await user.save();
 
@@ -97,7 +106,7 @@ exports.forgotPassword = async (req, res) => {
 exports.resetPassword = async (req, res) => {
     const { token } = req.params;
     const { password } = req.body;
-    if (!password) return res.status(400).json({ message: 'New password is required.' });
+    if (typeof password !== 'string' || !password) return res.status(400).json({ message: 'New password is required.' });
     if (!PASSWORD_REGEX.test(password)) {
         return res.status(400).json({
             message: 'Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character.'
@@ -105,7 +114,7 @@ exports.resetPassword = async (req, res) => {
     }
     try {
         const user = await User.findOne({
-            resetPasswordToken: token,
+            resetPasswordToken: hashToken(token),
             resetPasswordExpires: { $gt: Date.now() }
         });
         if (!user) return res.status(400).json({ message: 'Reset link is invalid or has expired.' });
@@ -122,9 +131,8 @@ exports.resetPassword = async (req, res) => {
 
 exports.addIncome = async (req, res) => {
     const { date, amount, description, frequency } = req.body;
-    if (!date || !amount || !description || !frequency) {
-        return res.status(400).json({ message: 'All fields are required.' });
-    }
+    const invalid = validateTransaction(req.body);
+    if (invalid) return res.status(400).json({ message: invalid });
     try {
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ message: 'User not found.' });
@@ -138,9 +146,8 @@ exports.addIncome = async (req, res) => {
 
 exports.addExpense = async (req, res) => {
     const { date, amount, description, frequency } = req.body;
-    if (!date || !amount || !description || !frequency) {
-        return res.status(400).json({ message: 'All fields are required.' });
-    }
+    const invalid = validateTransaction(req.body);
+    if (invalid) return res.status(400).json({ message: invalid });
     try {
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ message: 'User not found.' });
@@ -154,9 +161,8 @@ exports.addExpense = async (req, res) => {
 
 exports.addSavingsGoal = async (req, res) => {
     const { goalName, goalAmount, allocatedPercentage } = req.body;
-    if (!goalName || !goalAmount || !allocatedPercentage) {
-        return res.status(400).json({ message: 'All fields are required.' });
-    }
+    const invalid = validateSavingsGoal(req.body);
+    if (invalid) return res.status(400).json({ message: invalid });
     try {
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ message: 'User not found.' });

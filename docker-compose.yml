@@ -1,0 +1,31 @@
+# Production-like stack: MongoDB + API + static client
+#   JWT_SECRET=$(openssl rand -hex 32) docker compose up --build
+services:
+  mongo:
+    image: mongo:7
+    volumes: [mongo-data:/data/db]
+    restart: unless-stopped
+
+  api:
+    build: ./Backend
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/easybudget
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      CLIENT_ORIGIN: http://localhost:3000
+      EMAIL_USER: ${EMAIL_USER:-}
+      EMAIL_PASS: ${EMAIL_PASS:-}
+    ports: ["5001:5001"]
+    depends_on: [mongo]
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./client
+      args:
+        REACT_APP_API_URL: http://localhost:5001
+    ports: ["3000:80"]
+    depends_on: [api]
+    restart: unless-stopped
+
+volumes:
+  mongo-data:
