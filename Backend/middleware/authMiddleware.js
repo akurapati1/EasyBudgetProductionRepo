@@ -5,13 +5,12 @@ const authMiddleware = (req, res, next) => {
     if (!authHeader) return res.status(401).json({ message: 'Access denied. No token provided.' });
 
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded;
+        req.user = jwt.verify(token, process.env.JWT_SECRET);
         next();
     } catch (ex) {
-        res.status(400).json({ message: 'Invalid token.' });
+        // 401 (not 400): the credentials are missing/invalid, so clients know to re-authenticate.
+        res.status(401).json({ message: 'Invalid or expired token.' });
     }
 };
 

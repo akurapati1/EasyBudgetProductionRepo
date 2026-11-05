@@ -1,7 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(find /c/Users/abhil/.2Project/easyBudget/EasyBudgetProductionRepo -maxdepth 2 -type d -not -path */node_modules)"
-    ]
-  }
-}

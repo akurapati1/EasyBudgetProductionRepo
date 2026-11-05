@@ -1,30 +1,21 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
 require('dotenv').config();
+const mongoose = require('mongoose');
 
-const app = express();
+const missing = ['MONGODB_URI', 'JWT_SECRET'].filter((name) => !process.env[name]);
+if (missing.length) {
+    console.error(`Missing required environment variable(s): ${missing.join(', ')}`);
+    process.exit(1);
+}
+
+const app = require('./app');
 const PORT = process.env.PORT || 5001;
 
-app.use(express.json());
-app.use(cors({
-    origin: process.env.CLIENT_ORIGIN || 'http://localhost:3000',
-    credentials: true
-}));
-
-mongoose.connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-}).then(() => {
-    console.log('MongoDB connected.');
-}).catch(err => {
-    console.error('MongoDB connection error:', err);
-    process.exit(1);
-});
-
-app.use('/auth', require('./routes/auth'));
-app.use('/api/budget', require('./routes/budgetRoutes'));
-
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
-
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+mongoose.connect(process.env.MONGODB_URI)
+    .then(() => {
+        console.log('MongoDB connected.');
+        app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    })
+    .catch((err) => {
+        console.error('MongoDB connection error:', err);
+        process.exit(1);
+    });

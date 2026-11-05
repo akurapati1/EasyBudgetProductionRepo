@@ -23,3 +23,7 @@ yarn-debug.log*
 yarn-error.log*
 
 .env
+# local tooling
+.claude/settings.local.json
+node_modules/
+build/
