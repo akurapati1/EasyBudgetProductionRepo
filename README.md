@@ -92,6 +92,11 @@ client/    src/Components (pages, dashboard, charts) · src/context (Auth, User)
 docker-compose.yml · .github/workflows/main.yaml · HighLevelDesignDocument.md
 ```
 
+## Deploy for free (Render + MongoDB Atlas)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/akurapati1/EasyBudgetProductionRepo)
+
+Step-by-step instructions (including the free Atlas database) are in [DEPLOY.md](DEPLOY.md).
+
 ## Deployment notes
 Deploy the API anywhere that runs a container or Node (Render, Railway, Fly.io, ECS) with MongoDB Atlas; host the static `client/build` on Netlify/Vercel/S3 or use the provided nginx image. Set `CLIENT_ORIGIN` to the client's URL and use HTTPS.
 

@@ -1,0 +1,34 @@
+# Render Blueprint - free tier. Deploy: https://render.com/deploy?repo=https://github.com/akurapati1/EasyBudgetProductionRepo
+services:
+  - type: web
+    name: easybudget-api
+    runtime: docker
+    plan: free
+    rootDir: Backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: MONGODB_URI        # MongoDB Atlas free (M0) connection string
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CLIENT_ORIGIN      # URL of the static site below, e.g. https://easybudget-web.onrender.com (no trailing slash)
+        sync: false
+      - key: EMAIL_USER         # optional: only needed for password-reset e-mails
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
+
+  - type: web
+    name: easybudget-web
+    runtime: static
+    rootDir: client
+    buildCommand: npm ci && CI=false npm run build
+    staticPublishPath: build
+    envVars:
+      - key: REACT_APP_API_URL  # URL of easybudget-api, e.g. https://easybudget-api.onrender.com
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
